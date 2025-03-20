@@ -7,19 +7,19 @@ on:
       - main
       - dev
 
+permissions:
+  contents: write      # リリースするためwriteが必要
+  packages: write      # GitHub Packagesに書き込むならwriteが必要（そのまま維持）
+
 jobs:
   release:
     name: Release
-    permissions:
-      contents: write
-      packages: write
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Make sure the release step uses its own credentials:
-          # https://github.com/cycjimmy/semantic-release-action#private-packages
           persist-credentials: false
           fetch-depth: 0
 
@@ -29,13 +29,13 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Cache Gradle
-        uses: burrunan/gradle-cache-action@v1
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Build
+      - name: Build with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew :patches:buildAndroid clean
+        run: ./gradlew clean :patches:buildAndroid --stacktrace --info
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -56,5 +56,4 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: semantic-release:*
         run: npm exec semantic-release
